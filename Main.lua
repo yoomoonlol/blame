@@ -1,10 +1,13 @@
-local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
+-- Save WindUI and Window to the global executor environment
+getgenv().WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
 
-local Window = WindUI:CreateWindow({
+getgenv().BlameWindow = getgenv().WindUI:CreateWindow({
     Title = "Blame",
     Folder = "Blame",
     Size = UDim2.fromOffset(600, 480),
 })
+
+local Window = getgenv().BlameWindow
 
 local HomeTab = Window:Tab({ Title = "Home", Icon = "home" })
 HomeTab:Paragraph({
@@ -12,27 +15,19 @@ HomeTab:Paragraph({
     Desc = "If you see this, the main script loaded!",
 })
 
--- Create Tabs
-local CharacterTab = Window:Tab({ Title = "Character", Icon = "user" })
-local MovementTab = Window:Tab({ Title = "Movement", Icon = "move" })
-
--- Create Sections
-local CharSection = CharacterTab:Section({ Title = "Stats & Actions", Box = true, Opened = true })
-local MoveSection = MovementTab:Section({ Title = "Movement", Box = true, Opened = true })
-
+-- The Cache Buster
 local CacheBust = "?t=" .. tostring(os.time())
 local BaseUrl = "https://raw.githubusercontent.com/yoomoonlol/blame/main/Modules/"
 
-local function loadModule(name, section)
+local function loadModule(name)
     local code = game:HttpGet(BaseUrl .. name .. ".lua" .. CacheBust)
     local fn = loadstring(code)
     if fn then
-        -- Pass the created Section into the module
-        pcall(fn, { Window = Window, Section = section })
+        pcall(fn)
     end
 end
 
-loadModule("Character", CharSection)
-loadModule("Movement", MoveSection)
+loadModule("Character")
+loadModule("Movement")
 
-WindUI:Notify({ Title = "Blame", Content = "Loaded successfully!", Duration = 5 })
+getgenv().WindUI:Notify({ Title = "Blame", Content = "Loaded successfully!", Duration = 5 })
