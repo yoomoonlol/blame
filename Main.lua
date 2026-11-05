@@ -12,12 +12,16 @@ HomeTab:Paragraph({
     Desc = "If you see this, the main script loaded!",
 })
 
+-- We add a "?t=..." random string at the end so Roblox doesn't use the old cached file
+local CacheBust = "?t=" .. tostring(os.time())
 local BaseUrl = "https://raw.githubusercontent.com/yoomoonlol/blame/main/Modules/"
 
-local CharacterModule = loadstring(game:HttpGet(BaseUrl .. "Character.lua"))()
+local charCode = game:HttpGet(BaseUrl .. "Character.lua" .. CacheBust)
+local CharacterModule = loadstring(charCode)
 CharacterModule({ Window = Window })
 
-local MovementModule = loadstring(game:HttpGet(BaseUrl .. "Movement.lua"))()
+local moveCode = game:HttpGet(BaseUrl .. "Movement.lua" .. CacheBust)
+local MovementModule = loadstring(moveCode)
 MovementModule({ Window = Window })
 
 WindUI:Notify({ Title = "Blame", Content = "All modules loaded!", Duration = 5 })
