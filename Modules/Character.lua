@@ -6,9 +6,8 @@ return function(core)
     local Workspace = game:GetService("Workspace")
 
     local Tab = Window:Tab({ Title = "Character", Icon = "user" })
-    local Section = Tab:Section({ Title = "Stats & Physics", Box = true, BoxBorder = true, Opened = true })
+    local Section = Tab:Section({ Title = "Stats & Physics", Box = true, Opened = true })
 
-    -- State tracking
     local state = {
         speed = false, speedVal = 32,
         jump = false, jumpVal = 50,
@@ -19,7 +18,6 @@ return function(core)
 
     local defaultGravity = Workspace.Gravity
 
-    -- Helpers
     local function getHum()
         local c = player.Character
         return c and c:FindFirstChildOfClass("Humanoid")
@@ -29,7 +27,6 @@ return function(core)
         return c and c:FindFirstChild("HumanoidRootPart")
     end
 
-    -- 1. WalkSpeed
     Section:Toggle({
         Title = "WalkSpeed",
         Desc = "Change your character's speed",
@@ -43,7 +40,6 @@ return function(core)
         Callback = function(v) state.speedVal = v end,
     })
 
-    -- 2. JumpPower
     Section:Toggle({
         Title = "JumpPower",
         Desc = "Change your jump height",
@@ -57,7 +53,6 @@ return function(core)
         Callback = function(v) state.jumpVal = v end,
     })
 
-    -- 3. Gravity
     Section:Toggle({
         Title = "Gravity",
         Desc = "Change world gravity",
@@ -71,7 +66,6 @@ return function(core)
         Callback = function(v) state.gravityVal = v end,
     })
 
-    -- 4. HipHeight
     Section:Toggle({
         Title = "HipHeight",
         Desc = "Change your character's height off the ground",
@@ -85,9 +79,8 @@ return function(core)
         Callback = function(v) state.hipVal = v end,
     })
 
-    local ActionSection = Tab:Section({ Title = "Actions", Box = true, BoxBorder = true, Opened = true })
+    local ActionSection = Tab:Section({ Title = "Actions", Box = true, Opened = true })
 
-    -- 5. God Mode
     ActionSection:Toggle({
         Title = "God Mode",
         Desc = "Prevents you from taking damage",
@@ -107,7 +100,6 @@ return function(core)
         end,
     })
 
-    -- 6. Anchor
     ActionSection:Toggle({
         Title = "Anchor",
         Desc = "Freezes you completely in place",
@@ -119,7 +111,6 @@ return function(core)
         end,
     })
 
-    -- 7. Invisible
     ActionSection:Toggle({
         Title = "Invisible",
         Desc = "Makes your character invisible",
@@ -137,7 +128,6 @@ return function(core)
         end,
     })
 
-    -- 8. Fullbright
     ActionSection:Toggle({
         Title = "Fullbright",
         Desc = "Removes shadows and boosts lighting",
@@ -157,80 +147,30 @@ return function(core)
         end,
     })
 
-    -- 9. Freeze (Client-side)
-    ActionSection:Button({
-        Title = "Freeze Position",
-        Desc = "Stops you from moving (client-side)",
-        Icon = "snowflake",
-        Justify = "Center",
-        Callback = function()
-            local root = getRoot()
-            if root then
-                local bv = Instance.new("BodyVelocity")
-                bv.MaxForce = Vector3.new(1e9, 1e9, 1e9)
-                bv.Velocity = Vector3.zero
-                bv.Parent = root
-                task.wait(0.5)
-                bv:Destroy()
-            end
-        end,
-    })
-
-    -- 10. Reset Character
     ActionSection:Button({
         Title = "Reset Character",
         Icon = "rotate-ccw",
-        Justify = "Center",
         Callback = function()
             local hum = getHum()
             if hum then hum.Health = 0 end
         end,
     })
 
-    -- Heartbeat loop for continuous updates
-    local conn = RunService.Heartbeat:Connect(function()
+    RunService.Heartbeat:Connect(function()
         local hum = getHum()
         if not hum then return end
 
-        -- Speed
-        if state.speed then
-            hum.WalkSpeed = state.speedVal
-        else
-            hum.WalkSpeed = 16
-        end
-
-        -- Jump
-        if state.jump then
-            hum.UseJumpPower = true
-            hum.JumpPower = state.jumpVal
-        else
-            hum.JumpPower = 50
-        end
-
-        -- Hip Height
-        if state.hip then
-            hum.HipHeight = state.hipVal
-        end
-
-        -- Gravity
-        if state.gravity then
-            Workspace.Gravity = state.gravityVal
-        else
-            Workspace.Gravity = defaultGravity
-        end
-
-        -- God Mode (in case they reset health)
-        if state.god then
-            hum.MaxHealth = math.huge
-            hum.Health = math.huge
-        end
+        if state.speed then hum.WalkSpeed = state.speedVal else hum.WalkSpeed = 16 end
+        if state.jump then hum.UseJumpPower = true hum.JumpPower = state.jumpVal else hum.JumpPower = 50 end
+        if state.hip then hum.HipHeight = state.hipVal end
+        if state.gravity then Workspace.Gravity = state.gravityVal else Workspace.Gravity = defaultGravity end
+        if state.god then hum.MaxHealth = math.huge hum.Health = math.huge end
     end)
 
-    -- Handle respawn
     player.CharacterAdded:Connect(function(char)
         task.wait(0.5)
         if state.anchor then
-            local r = char:WaitForChild("HumanoidRootPart")
+            local r = char:WaitForChild("HumanoidRootPart", 3)
             if r then r.Anchored = true end
         end
         if state.invis then
