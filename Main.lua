@@ -12,23 +12,23 @@ HomeTab:Paragraph({
     Desc = "If you see this, the main script loaded!",
 })
 
+-- Create the tabs here FIRST
+local CharacterTab = Window:Tab({ Title = "Character", Icon = "user" })
+local MovementTab = Window:Tab({ Title = "Movement", Icon = "move" })
+
 local CacheBust = "?t=" .. tostring(os.time())
 local BaseUrl = "https://raw.githubusercontent.com/yoomoonlol/blame/main/Modules/"
 
-local function loadModule(name)
+local function loadModule(name, tab)
     local code = game:HttpGet(BaseUrl .. name .. ".lua" .. CacheBust)
     local fn = loadstring(code)
-    if not fn then
-        WindUI:Notify({ Title = "Load Error", Content = "Failed to compile " .. name, Duration = 10 })
-        return
-    end
-    
-    local success, err = pcall(fn, { Window = Window })
-    if not success then
-        WindUI:Notify({ Title = "Module Error: " .. name, Content = tostring(err), Duration = 15 })
-        warn("Module Error (" .. name .. "):", err)
+    if fn then
+        -- Pass the created tab into the module
+        pcall(fn, { Window = Window, Tab = tab })
     end
 end
 
-loadModule("Character")
-loadModule("Movement")
+loadModule("Character", CharacterTab)
+loadModule("Movement", MovementTab)
+
+WindUI:Notify({ Title = "Blame", Content = "Loaded successfully!", Duration = 5 })
