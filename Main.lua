@@ -12,16 +12,27 @@ HomeTab:Paragraph({
     Desc = "If you see this, the main script loaded!",
 })
 
--- We add a "?t=..." random string at the end so Roblox doesn't use the old cached file
 local CacheBust = "?t=" .. tostring(os.time())
 local BaseUrl = "https://raw.githubusercontent.com/yoomoonlol/blame/main/Modules/"
 
-local charCode = game:HttpGet(BaseUrl .. "Character.lua" .. CacheBust)
-local CharacterModule = loadstring(charCode)
-CharacterModule({ Window = Window })
+-- Function to safely load modules and report errors
+local function loadModule(name)
+    local code = game:HttpGet(BaseUrl .. name .. ".lua" .. CacheBust)
+    local fn = loadstring(code)
+    if not fn then
+        WindUI:Notify({ Title = "Load Error", Content = "Failed to compile " .. name, Duration = 10 })
+        return
+    end
+    
+    -- pcall catches errors inside the module so it doesn't break the whole script
+    local success, err = pcall(fn, { Window = Window })
+    if not success then
+        WindUI:Notify({ Title = "Module Error: " .. name, Content = tostring(err), Duration = 15 })
+        warn("Module Error (" .. name .. "):", err)
+    else
+        WindUI:Notify({ Title = "Loaded", Content = name .. " module", Duration = 3 })
+    end
+end
 
-local moveCode = game:HttpGet(BaseUrl .. "Movement.lua" .. CacheBust)
-local MovementModule = loadstring(moveCode)
-MovementModule({ Window = Window })
-
-WindUI:Notify({ Title = "Blame", Content = "All modules loaded!", Duration = 5 })
+loadModule("Character")
+loadModule("Movement")
