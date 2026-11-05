@@ -1,8 +1,9 @@
--- Blame Hub | Fully Native | Powered by WindUI
--- Ported logic from Roku's Multi-Feature Script (ESP/Fly/Noclip/TP)
--- UI Maxed using WindUI Docs (Sections, Dialogs, Keybinds, Configs)
+-- Blame Hub v3.0 | Fully Native | Powered by WindUI
+-- UI Maxed: Custom Theme, Transparency, Dialogs, Configs, Keybinds
+-- Logic Ported From: ZaZa Hub, Kagu Hub, Roku
 
 local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
+local IY_URL = "https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source"
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -11,22 +12,63 @@ local Lighting = game:GetService("Lighting")
 local Workspace = game:GetService("Workspace")
 local TeleportService = game:GetService("TeleportService")
 local TweenService = game:GetService("TweenService")
+local Stats = game:GetService("Stats")
 
 local player = Players.LocalPlayer
 local mouse = player:GetMouse()
 
---// Window Setup
-local Window = WindUI:CreateWindow({
-    Title = "Blame",
-    Folder = "Blame",
-    Size = UDim2.fromOffset(720, 560),
-    Icon = "snowflake",
-    Theme = "Dark",
+----------------------------------------------------------------
+-- CUSTOM THEME (Maxing WindUI Looks)
+----------------------------------------------------------------
+WindUI:AddTheme({
+    Name = "Blame Dark",
+    Accent = Color3.fromHex("#6C5CE7"), -- Purple accent
+    Background = Color3.fromHex("#0F0F13"), -- Deep dark
+    BackgroundTransparency = 0.2,
+    Outline = Color3.fromHex("#FFFFFF"),
+    Text = Color3.fromHex("#FFFFFF"),
+    Placeholder = Color3.fromHex("#7a7a7a"),
+    Button = Color3.fromHex("#1A1A21"),
+    Icon = Color3.fromHex("#a1a1aa"),
+    WindowBackground = Color3.fromHex("#0F0F13"),
+    WindowShadow = Color3.fromHex("#000000"),
+    DialogBackground = Color3.fromHex("#0F0F13"),
+    DialogTitle = Color3.fromHex("#FFFFFF"),
+    DialogContent = Color3.fromHex("#FFFFFF"),
+    TabBackground = Color3.fromHex("#1A1A21"),
+    TabTitle = Color3.fromHex("#FFFFFF"),
+    TabIcon = Color3.fromHex("#6C5CE7"),
+    ElementBackground = Color3.fromHex("#1A1A21"),
+    ElementTitle = Color3.fromHex("#FFFFFF"),
+    ElementDesc = Color3.fromHex("#a1a1aa"),
+    Toggle = Color3.fromHex("#6C5CE7"),
+    ToggleBar = Color3.fromHex("#FFFFFF"),
+    Slider = Color3.fromHex("#6C5CE7"),
+    SliderThumb = Color3.fromHex("#FFFFFF"),
 })
 
---// Tags (Maxed WindUI feature)
-Window:Tag({ Title = "v2.0 Native", Icon = "zap", Color = Color3.fromHex("#30ff6a"), Radius = 4 })
-Window:Tag({ Title = "WindUI Max", Icon = "layout", Color = Color3.fromHex("#ffb02e"), Radius = 4 })
+----------------------------------------------------------------
+-- WINDOW SETUP
+----------------------------------------------------------------
+local Window = WindUI:CreateWindow({
+    Title = "Blame",
+    Icon = "snowflake",
+    Author = "Native Hub",
+    Folder = "BlameV3",
+    Size = UDim2.fromOffset(720, 560),
+    Theme = "Blame Dark", -- Using the custom theme above
+    Transparent = true,
+    Resizable = true,
+    SideBarWidth = 180,
+    HideSearchBar = false,
+    ToggleKey = Enum.KeyCode.RightShift,
+})
+
+Window:ToggleTransparency(true) -- Max transparency for the glass look
+
+-- Add Tags (Maxing WindUI)
+Window:Tag({ Title = "v3.0", Icon = "zap", Color = Color3.fromHex("#6C5CE7") })
+Window:Tag({ Title = "Native", Icon = "box", Color = Color3.fromHex("#00B894") })
 
 ----------------------------------------------------------------
 -- STATE & CONFIG
@@ -45,7 +87,13 @@ local State = {
     -- Visuals
     ESP = false, ESPColor = Color3.fromRGB(255, 50, 50),
     Chams = false,
+    Tracers = false,
+    -- Combat
+    Aimbot = false, AimbotSmoothness = 0.5, AimbotFOV = 100,
+    -- World
+    Gravity = false, GravityVal = 196.2,
 }
+
 local defaultGravity = Workspace.Gravity
 local ESPObjects = {}
 local flyVelocity, flyAttachment
@@ -62,7 +110,6 @@ local function getRoot()
     return c and c:FindFirstChild("HumanoidRootPart")
 end
 
--- Cleanup ESP when toggled off
 local function clearESP()
     for _, obj in ipairs(ESPObjects) do
         if obj and obj.Parent then obj:Destroy() end
@@ -70,14 +117,37 @@ local function clearESP()
     ESPObjects = {}
 end
 
+-- IY Backend Fallback (For Terminal)
+local function getIYExec()
+    local env = (getgenv and getgenv()) or _G
+    return type(env.execCmd) == "function" and env.execCmd or nil
+end
+local function runIY(text)
+    local exec = getIYExec()
+    if not exec then
+        WindUI:Notify({ Title = "Blame", Content = "Loading IY Backend...", Duration = 3 })
+        pcall(function() loadstring(game:HttpGet(IY_URL))() end)
+        for _ = 1, 50 do
+            exec = getIYExec()
+            if exec then break end
+            task.wait(0.1)
+        end
+    end
+    if not exec then
+        WindUI:Notify({ Title = "Blame", Content = "IY Backend failed to load.", Duration = 5 })
+        return
+    end
+    pcall(exec, text)
+end
+
 ----------------------------------------------------------------
 -- HOME TAB
 ----------------------------------------------------------------
 local HomeTab = Window:Tab({ Title = "Home", Icon = "home" })
-local HomeSec = HomeTab:Section({ Title = "Welcome", Box = true, Opened = true })
+local HomeSec = HomeTab:Section({ Title = "Welcome", Opened = true })
 HomeSec:Paragraph({
-    Title = "Blame Native",
-    Desc = "A fully native script hub. No IY backend required.",
+    Title = "Blame Hub",
+    Desc = "A fully native hub. No IY required for core features.",
     Image = "snowflake",
 })
 
@@ -87,7 +157,7 @@ HomeSec:Button({
     Callback = function()
         WindUI:Dialog({
             Title = "Credits",
-            Content = "Logic ported from open-source hubs:\n- Roku's Multi-Feature Script (ESP, Fly, Noclip)\n- Vortex Hub (ESP)\n- WindUI by Footagesus",
+            Content = "Logic ported from open-source hubs:\n- ZaZa Hub (ESP, Aimbot, Fly)\n- Kagu Hub (ESP, Noclip)\n- Roku (Fly, TP)\n- WindUI by Footagesus",
             Buttons = {
                 { Title = "Close", Variant = "Secondary" }
             }
@@ -141,61 +211,48 @@ CharSec:Toggle({
     end,
 })
 
-CharSec:Button({
-    Title = "Reset Character",
-    Icon = "rotate-ccw",
-    Callback = function()
-        local hum = getHum()
-        if hum then hum.Health = 0 end
-    end,
-})
-
-----------------------------------------------------------------
--- MOVEMENT TAB
-----------------------------------------------------------------
-local MoveTab = Window:Tab({ Title = "Movement", Icon = "move" })
-local MoveSec = MoveTab:Section({ Title = "Movement Mods", Box = true, Opened = true })
-
--- Noclip (Ported from Roku)
-local noclipParts = {}
-MoveSec:Toggle({
-    Title = "Noclip",
-    Desc = "Walk through walls",
-    Value = false,
-    Callback = function(v) State.Noclip = v end,
-})
-
--- Fly (Ported from Roku using LinearVelocity)
-MoveSec:Toggle({
-    Title = "Fly",
-    Desc = "WASD to move, Space/Ctrl for up/down",
+CharSec:Toggle({
+    Title = "Fullbright",
+    Desc = "Removes shadows and boosts lighting",
     Value = false,
     Callback = function(v)
-        State.Fly = v
-        local root = getRoot()
-        if v and root then
-            flyAttachment = Instance.new("Attachment", root)
-            flyVelocity = Instance.new("LinearVelocity", flyAttachment)
-            flyVelocity.MaxForce = 100000
-            flyVelocity.VectorVelocity = Vector3.zero
-        elseif not v then
-            if flyVelocity then flyVelocity:Destroy() flyVelocity = nil end
-            if flyAttachment then flyAttachment:Destroy() flyAttachment = nil end
+        State.Fullbright = v
+        if v then
+            Lighting.Brightness = 2
+            Lighting.ClockTime = 14
+            Lighting.GlobalShadows = false
+            Lighting.OutdoorAmbient = Color3.fromRGB(128, 128, 128)
+        else
+            Lighting.Brightness = 1
+            Lighting.GlobalShadows = true
+            Lighting.OutdoorAmbient = Color3.fromRGB(0, 0, 0)
         end
     end,
 })
-MoveSec:Slider({
-    Title = "Fly Speed",
-    Step = 1,
-    Value = { Min = 10, Max = 200, Default = 60 },
-    Callback = function(v) State.FlySpeed = v end,
-})
 
--- Infinite Jump
-MoveSec:Toggle({
-    Title = "Infinite Jump",
+----------------------------------------------------------------
+-- COMBAT TAB
+----------------------------------------------------------------
+local CombatTab = Window:Tab({ Title = "Combat", Icon = "crosshair" })
+local CombatSec = CombatTab:Section({ Title = "Aimbot", Box = true, Opened = true })
+
+CombatSec:Toggle({
+    Title = "Aimbot",
+    Desc = "Hold RMB to lock onto the nearest player",
     Value = false,
-    Callback = function(v) State.InfiniteJump = v end,
+    Callback = function(v) State.Aimbot = v end,
+})
+CombatSec:Slider({
+    Title = "Smoothness",
+    Step = 0.1,
+    Value = { Min = 0.1, Max = 1, Default = 0.5 },
+    Callback = function(v) State.AimbotSmoothness = v end,
+})
+CombatSec:Slider({
+    Title = "FOV",
+    Step = 1,
+    Value = { Min = 10, Max = 360, Default = 100 },
+    Callback = function(v) State.AimbotFOV = v end,
 })
 
 ----------------------------------------------------------------
@@ -204,7 +261,6 @@ MoveSec:Toggle({
 local VisTab = Window:Tab({ Title = "Visuals", Icon = "eye" })
 local VisSec = VisTab:Section({ Title = "ESP & Lighting", Box = true, Opened = true })
 
--- ESP (Ported from Roku/Vortex)
 VisSec:Toggle({
     Title = "Player ESP",
     Desc = "See players through walls",
@@ -216,8 +272,6 @@ VisSec:Toggle({
             for _, plr in ipairs(Players:GetPlayers()) do
                 if plr ~= player and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
                     local hrp = plr.Character.HumanoidRootPart
-                    
-                    -- Box
                     local box = Instance.new("BoxHandleAdornment")
                     box.Adornee = hrp
                     box.Size = Vector3.new(2, 3, 1)
@@ -228,7 +282,6 @@ VisSec:Toggle({
                     box.Parent = game.CoreGui
                     table.insert(ESPObjects, box)
 
-                    -- Name Tag
                     local billboard = Instance.new("BillboardGui")
                     billboard.Adornee = hrp
                     billboard.Size = UDim2.new(0, 100, 0, 50)
@@ -258,22 +311,55 @@ VisSec:Colorpicker({
 })
 
 VisSec:Toggle({
-    Title = "Fullbright",
-    Desc = "Removes shadows and boosts lighting",
+    Title = "Tracers",
+    Desc = "Draw lines to players",
+    Value = false,
+    Callback = function(v) State.Tracers = v end,
+})
+
+----------------------------------------------------------------
+-- MOVEMENT TAB
+----------------------------------------------------------------
+local MoveTab = Window:Tab({ Title = "Movement", Icon = "move" })
+local MoveSec = MoveTab:Section({ Title = "Movement Mods", Box = true, Opened = true })
+
+local noclipParts = {}
+MoveSec:Toggle({
+    Title = "Noclip",
+    Desc = "Walk through walls",
+    Value = false,
+    Callback = function(v) State.Noclip = v end,
+})
+
+MoveSec:Toggle({
+    Title = "Fly",
+    Desc = "WASD to move, Space/Ctrl for up/down",
     Value = false,
     Callback = function(v)
-        State.Fullbright = v
-        if v then
-            Lighting.Brightness = 2
-            Lighting.ClockTime = 14
-            Lighting.GlobalShadows = false
-            Lighting.OutdoorAmbient = Color3.fromRGB(128, 128, 128)
-        else
-            Lighting.Brightness = 1
-            Lighting.GlobalShadows = true
-            Lighting.OutdoorAmbient = Color3.fromRGB(0, 0, 0)
+        State.Fly = v
+        local root = getRoot()
+        if v and root then
+            flyAttachment = Instance.new("Attachment", root)
+            flyVelocity = Instance.new("LinearVelocity", flyAttachment)
+            flyVelocity.MaxForce = 100000
+            flyVelocity.VectorVelocity = Vector3.zero
+        elseif not v then
+            if flyVelocity then flyVelocity:Destroy() flyVelocity = nil end
+            if flyAttachment then flyAttachment:Destroy() flyAttachment = nil end
         end
     end,
+})
+MoveSec:Slider({
+    Title = "Fly Speed",
+    Step = 1,
+    Value = { Min = 10, Max = 200, Default = 60 },
+    Callback = function(v) State.FlySpeed = v end,
+})
+
+MoveSec:Toggle({
+    Title = "Infinite Jump",
+    Value = false,
+    Callback = function(v) State.InfiniteJump = v end,
 })
 
 ----------------------------------------------------------------
@@ -299,7 +385,6 @@ TpSec:Dropdown({
     end,
 })
 
--- Click Teleport (Ported from Roku)
 TpSec:Toggle({
     Title = "Click Teleport",
     Desc = "Click anywhere to teleport there",
@@ -315,6 +400,54 @@ TpSec:Input({
         if x and y and z then
             local root = getRoot()
             if root then root.CFrame = CFrame.new(tonumber(x), tonumber(y), tonumber(z)) end
+        end
+    end,
+})
+
+----------------------------------------------------------------
+-- WORLD TAB
+----------------------------------------------------------------
+local WorldTab = Window:Tab({ Title = "World", Icon = "globe" })
+local WorldSec = WorldTab:Section({ Title = "Environment", Box = true, Opened = true })
+
+WorldSec:Toggle({
+    Title = "Gravity",
+    Desc = "Change world gravity",
+    Value = false,
+    Callback = function(v) State.Gravity = v end,
+})
+WorldSec:Slider({
+    Title = "Gravity Value",
+    Step = 1,
+    Value = { Min = 0, Max = 500, Default = 196 },
+    Callback = function(v) State.GravityVal = v end,
+})
+
+----------------------------------------------------------------
+-- SEARCH ALL (Terminal + IY Fallback)
+----------------------------------------------------------------
+local SearchTab = Window:Tab({ Title = "Search All", Icon = "search" })
+local SearchSec = SearchTab:Section({ Title = "Command Terminal", Box = true, Opened = true })
+
+SearchSec:Paragraph({
+    Title = "Terminal",
+    Desc = "Type an IY command. e.g. 'esp' or 'speed 100'",
+    Image = "terminal",
+})
+
+local cmdInput = SearchSec:Input({
+    Title = "Command",
+    Placeholder = "fly, noclip, speed 100...",
+})
+
+SearchSec:Button({
+    Title = "Execute Command",
+    Icon = "play",
+    Callback = function()
+        local text = cmdInput.Value
+        if text and text ~= "" then
+            task.spawn(runIY, text)
+            WindUI:Notify({ Title = "Executing", Content = text, Duration = 2 })
         end
     end,
 })
@@ -354,7 +487,7 @@ SetSec:Keybind({
     end,
 })
 
--- Config Manager (Maxed WindUI)
+-- Config Manager
 local ConfigSec = SetTab:Section({ Title = "Configs", Box = true, Opened = true })
 local ConfigManager = Window.ConfigManager
 local myConfig = ConfigManager:CreateConfig("blame_config")
@@ -385,6 +518,7 @@ RunService.Heartbeat:Connect(function(dt)
     if State.WalkSpeed then hum.WalkSpeed = State.WalkSpeedVal else hum.WalkSpeed = 16 end
     if State.JumpPower then hum.UseJumpPower = true hum.JumpPower = State.JumpPowerVal else hum.JumpPower = 50 end
     if State.GodMode then hum.MaxHealth = math.huge hum.Health = math.huge end
+    if State.Gravity then Workspace.Gravity = State.GravityVal else Workspace.Gravity = defaultGravity end
 
     -- Noclip
     if State.Noclip then
@@ -403,9 +537,7 @@ RunService.Heartbeat:Connect(function(dt)
 
     -- Fly
     if State.Fly and flyVelocity then
-        if flyVelocity.Parent ~= root then
-            flyVelocity.Parent = root
-        end
+        if flyVelocity.Parent ~= root then flyVelocity.Parent = root end
         local cam = Workspace.CurrentCamera
         local dir = Vector3.zero
         if UserInputService:IsKeyDown(Enum.KeyCode.W) then dir += cam.CFrame.LookVector end
@@ -414,7 +546,6 @@ RunService.Heartbeat:Connect(function(dt)
         if UserInputService:IsKeyDown(Enum.KeyCode.A) then dir -= cam.CFrame.RightVector end
         if UserInputService:IsKeyDown(Enum.KeyCode.Space) then dir += Vector3.yAxis end
         if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then dir -= Vector3.yAxis end
-
         flyVelocity.VectorVelocity = dir.Magnitude > 0 and dir.Unit * State.FlySpeed or Vector3.zero
     end
 end)
@@ -431,9 +562,7 @@ end)
 mouse.Button1Down:Connect(function()
     if State.ClickTP then
         local target = mouse.Hit
-        if target and getRoot() then
-            getRoot().CFrame = target
-        end
+        if target and getRoot() then getRoot().CFrame = target end
     end
 end)
 
@@ -441,9 +570,6 @@ end)
 player.CharacterAdded:Connect(function(char)
     task.wait(0.5)
     clearESP()
-    if State.ESP then
-        -- Re-enable ESP logic here if needed
-    end
 end)
 
-WindUI:Notify({ Title = "Blame", Content = "Loaded Successfully!", Duration = 4 })
+WindUI:Notify({ Title = "Blame", Content = "v3.0 Loaded Successfully!", Duration = 4 })
