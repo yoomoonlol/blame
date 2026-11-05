@@ -1,5 +1,8 @@
--- Blame Native Script (One File)
+-- Blame Hub | Native + IY Backend
+-- UI: WindUI | Native Logic: Blame | Fallback: Infinite Yield
+
 local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
+local IY_URL = "https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source"
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -10,10 +13,26 @@ local TeleportService = game:GetService("TeleportService")
 
 local player = Players.LocalPlayer
 
+--// Window Setup
 local Window = WindUI:CreateWindow({
     Title = "Blame",
     Folder = "Blame",
-    Size = UDim2.fromOffset(600, 480),
+    Size = UDim2.fromOffset(680, 520),
+    Icon = "snowflake",
+})
+
+--// Tags (Using the Tag API from your docs link)
+Window:Tag({
+    Title = "v1.0.0",
+    Icon = "github",
+    Color = Color3.fromHex("#30ff6a"),
+    Radius = 4,
+})
+Window:Tag({
+    Title = "Native",
+    Icon = "zap",
+    Color = Color3.fromHex("#ffb02e"),
+    Radius = 4,
 })
 
 ----------------------------------------------------------------
@@ -28,14 +47,37 @@ local function getRoot()
     return c and c:FindFirstChild("HumanoidRootPart")
 end
 
+-- IY Backend Setup
+local function getIYExec()
+    local env = (getgenv and getgenv()) or _G
+    return type(env.execCmd) == "function" and env.execCmd or nil
+end
+local function runIY(text)
+    local exec = getIYExec()
+    if not exec then
+        WindUI:Notify({ Title = "Blame", Content = "Loading IY Backend...", Duration = 3 })
+        pcall(function() loadstring(game:HttpGet(IY_URL))() end)
+        for _ = 1, 50 do
+            exec = getIYExec()
+            if exec then break end
+            task.wait(0.1)
+        end
+    end
+    if not exec then
+        WindUI:Notify({ Title = "Blame", Content = "IY Backend failed to load.", Duration = 5 })
+        return
+    end
+    pcall(exec, text)
+end
+
 ----------------------------------------------------------------
 -- HOME TAB
 ----------------------------------------------------------------
 local HomeTab = Window:Tab({ Title = "Home", Icon = "home" })
 local HomeSec = HomeTab:Section({ Title = "Welcome", Opened = true })
 HomeSec:Paragraph({
-    Title = "Blame Native",
-    Desc = "Select a tab on the left to get started.",
+    Title = "Blame Hub",
+    Desc = "Native commands + IY fallback for full coverage.",
     Image = "snowflake",
 })
 
@@ -43,7 +85,7 @@ HomeSec:Paragraph({
 -- CHARACTER TAB
 ----------------------------------------------------------------
 local CharacterTab = Window:Tab({ Title = "Character", Icon = "user" })
-local CharSec = CharacterTab:Section({ Title = "Stats & Actions", Opened = true })
+local CharSec = CharacterTab:Section({ Title = "Stats", Box = true, Opened = true })
 
 local charState = {
     speed = false, speedVal = 32,
@@ -100,13 +142,8 @@ CharSec:Toggle({
         charState.god = v
         local hum = getHum()
         if hum then
-            if v then
-                hum.MaxHealth = math.huge
-                hum.Health = math.huge
-            else
-                hum.MaxHealth = 100
-                hum.Health = 100
-            end
+            if v then hum.MaxHealth = math.huge hum.Health = math.huge
+            else hum.MaxHealth = 100 hum.Health = 100 end
         end
     end,
 })
@@ -152,7 +189,7 @@ CharSec:Button({
 -- MOVEMENT TAB
 ----------------------------------------------------------------
 local MoveTab = Window:Tab({ Title = "Movement", Icon = "move" })
-local MoveSec = MoveTab:Section({ Title = "Movement Options", Opened = true })
+local MoveSec = MoveTab:Section({ Title = "Movement Options", Box = true, Opened = true })
 
 local moveState = {
     noclip = false,
@@ -160,7 +197,6 @@ local moveState = {
     infJump = false
 }
 
--- Noclip
 local noclipParts = {}
 MoveSec:Toggle({
     Title = "Noclip",
@@ -169,7 +205,6 @@ MoveSec:Toggle({
     Callback = function(v) moveState.noclip = v end,
 })
 
--- Infinite Jump
 UserInputService.JumpRequest:Connect(function()
     if moveState.infJump then
         local hum = getHum()
@@ -183,7 +218,6 @@ MoveSec:Toggle({
     Callback = function(v) moveState.infJump = v end,
 })
 
--- Fly
 local flyBV, flyBG
 MoveSec:Toggle({
     Title = "Fly",
@@ -222,7 +256,7 @@ MoveSec:Slider({
 -- TELEPORT TAB
 ----------------------------------------------------------------
 local TpTab = Window:Tab({ Title = "Teleport", Icon = "map-pin" })
-local TpSec = TpTab:Section({ Title = "Teleport Options", Opened = true })
+local TpSec = TpTab:Section({ Title = "Teleport Options", Box = true, Opened = true })
 
 TpSec:Button({
     Title = "Teleport to Camera",
@@ -250,13 +284,42 @@ TpSec:Button({
 })
 
 ----------------------------------------------------------------
--- MASTER LOOP (Handles all continuous updates natively)
+-- SEARCH ALL (Terminal + IY Fallback)
+----------------------------------------------------------------
+local SearchTab = Window:Tab({ Title = "Search All", Icon = "search" })
+local SearchSec = SearchTab:Section({ Title = "Command Terminal", Box = true, Opened = true })
+
+SearchSec:Paragraph({
+    Title = "Terminal",
+    Desc = "Type an IY command. e.g. 'esp' or 'speed 100'",
+    Image = "terminal",
+})
+
+local cmdInput = SearchSec:Input({
+    Title = "Command",
+    Placeholder = "fly, noclip, speed 100...",
+})
+
+SearchSec:Button({
+    Title = "Execute Command",
+    Icon = "play",
+    Callback = function()
+        local text = cmdInput.Value
+        if text and text ~= "" then
+            task.spawn(runIY, text)
+            WindUI:Notify({ Title = "Executing", Content = text, Duration = 2 })
+        end
+    end,
+})
+
+----------------------------------------------------------------
+-- MASTER LOOP (Native Updates)
 ----------------------------------------------------------------
 RunService.Heartbeat:Connect(function()
     local hum, root = getHum(), getRoot()
     if not hum or not root then return end
 
-    -- Character Updates
+    -- Character
     if charState.speed then hum.WalkSpeed = charState.speedVal else hum.WalkSpeed = 16 end
     if charState.jump then hum.UseJumpPower = true hum.JumpPower = charState.jumpVal else hum.JumpPower = 50 end
     if charState.gravity then Workspace.Gravity = charState.gravityVal else Workspace.Gravity = defaultGravity end
@@ -313,4 +376,7 @@ player.CharacterAdded:Connect(function(char)
     end
 end)
 
-WindUI:Notify({ Title = "Blame", Content = "Script Loaded!", Duration = 5 })
+-- Background IY Load (for Search All)
+task.spawn(function() pcall(function() loadstring(game:HttpGet(IY_URL))() end) end)
+
+WindUI:Notify({ Title = "Blame", Content = "Loaded Successfully!", Duration = 4 })
