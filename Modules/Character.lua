@@ -1,11 +1,9 @@
 return function(core)
-    local Tab = core.Tab
+    local Section = core.Section
     local player = game:GetService("Players").LocalPlayer
     local RunService = game:GetService("RunService")
     local Lighting = game:GetService("Lighting")
     local Workspace = game:GetService("Workspace")
-
-    local Section = Tab:Section({ Title = "Stats & Physics", Box = true, Opened = true })
 
     local state = {
         speed = false, speedVal = 32,
@@ -78,9 +76,7 @@ return function(core)
         Callback = function(v) state.hipVal = v end,
     })
 
-    local ActionSection = Tab:Section({ Title = "Actions", Box = true, Opened = true })
-
-    ActionSection:Toggle({
+    Section:Toggle({
         Title = "God Mode",
         Desc = "Prevents you from taking damage",
         Value = false,
@@ -99,7 +95,7 @@ return function(core)
         end,
     })
 
-    ActionSection:Toggle({
+    Section:Toggle({
         Title = "Anchor",
         Desc = "Freezes you completely in place",
         Value = false,
@@ -110,7 +106,7 @@ return function(core)
         end,
     })
 
-    ActionSection:Toggle({
+    Section:Toggle({
         Title = "Invisible",
         Desc = "Makes your character invisible",
         Value = false,
@@ -127,7 +123,7 @@ return function(core)
         end,
     })
 
-    ActionSection:Toggle({
+    Section:Toggle({
         Title = "Fullbright",
         Desc = "Removes shadows and boosts lighting",
         Value = false,
@@ -146,7 +142,7 @@ return function(core)
         end,
     })
 
-    ActionSection:Button({
+    Section:Button({
         Title = "Reset Character",
         Icon = "rotate-ccw",
         Callback = function()
