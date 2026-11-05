@@ -1,11 +1,10 @@
 return function(core)
-    local Window = core.Window
+    local Tab = core.Tab
     local player = game:GetService("Players").LocalPlayer
     local RunService = game:GetService("RunService")
     local Lighting = game:GetService("Lighting")
     local Workspace = game:GetService("Workspace")
 
-    local Tab = Window:Tab({ Title = "Character", Icon = "user" })
     local Section = Tab:Section({ Title = "Stats & Physics", Box = true, Opened = true })
 
     local state = {
