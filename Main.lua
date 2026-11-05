@@ -6,42 +6,29 @@ local Window = WindUI:CreateWindow({
     Size = UDim2.fromOffset(600, 480),
 })
 
--- Fixed Home tab (used a Section instead of Paragraph directly on the Tab)
 local HomeTab = Window:Tab({ Title = "Home", Icon = "home" })
-local HomeSec = HomeTab:Section({ Title = "Welcome", Box = true, BoxBorder = true, Opened = true })
-HomeSec:Paragraph({
-    Title = "Blame UI",
-    Desc = "Modular rebuild in progress.",
-    Image = "solar:home-bold",
+HomeTab:Paragraph({
+    Title = "Blame Test",
+    Desc = "If you see this, the main script loaded!",
 })
 
--- Function to load modules safely
+local CacheBust = "?t=" .. tostring(os.time())
+local BaseUrl = "https://raw.githubusercontent.com/yoomoonlol/blame/main/Modules/"
+
 local function loadModule(name)
-    local CacheBust = "?t=" .. tostring(os.time())
-    local BaseUrl = "https://raw.githubusercontent.com/yoomoonlol/blame/main/Modules/"
-    
-    local success, code = pcall(function() return game:HttpGet(BaseUrl .. name .. ".lua" .. CacheBust) end)
-    if not success then
-        Window:Notify({ Title = "Download Error", Content = "Could not fetch " .. name, Duration = 5 })
-        return
-    end
-    
-    local fn, err = loadstring(code)
+    local code = game:HttpGet(BaseUrl .. name .. ".lua" .. CacheBust)
+    local fn = loadstring(code)
     if not fn then
-        Window:Notify({ Title = "Compile Error", Content = name .. ": " .. tostring(err), Duration = 10 })
+        WindUI:Notify({ Title = "Load Error", Content = "Failed to compile " .. name, Duration = 10 })
         return
     end
     
-    local ok, runErr = pcall(fn, { Window = Window })
-    if not ok then
-        Window:Notify({ Title = "Module Error", Content = name .. ": " .. tostring(runErr), Duration = 10 })
-    else
-        Window:Notify({ Title = "Loaded", Content = name .. " module", Duration = 3 })
+    local success, err = pcall(fn, { Window = Window })
+    if not success then
+        WindUI:Notify({ Title = "Module Error: " .. name, Content = tostring(err), Duration = 15 })
+        warn("Module Error (" .. name .. "):", err)
     end
 end
-
--- Wait a tiny bit to let WindUI render the main window before adding tabs
-task.wait(0.5)
 
 loadModule("Character")
 loadModule("Movement")
