@@ -12,23 +12,27 @@ HomeTab:Paragraph({
     Desc = "If you see this, the main script loaded!",
 })
 
--- Create the tabs here FIRST
+-- Create Tabs
 local CharacterTab = Window:Tab({ Title = "Character", Icon = "user" })
 local MovementTab = Window:Tab({ Title = "Movement", Icon = "move" })
+
+-- Create Sections
+local CharSection = CharacterTab:Section({ Title = "Stats & Actions", Box = true, Opened = true })
+local MoveSection = MovementTab:Section({ Title = "Movement", Box = true, Opened = true })
 
 local CacheBust = "?t=" .. tostring(os.time())
 local BaseUrl = "https://raw.githubusercontent.com/yoomoonlol/blame/main/Modules/"
 
-local function loadModule(name, tab)
+local function loadModule(name, section)
     local code = game:HttpGet(BaseUrl .. name .. ".lua" .. CacheBust)
     local fn = loadstring(code)
     if fn then
-        -- Pass the created tab into the module
-        pcall(fn, { Window = Window, Tab = tab })
+        -- Pass the created Section into the module
+        pcall(fn, { Window = Window, Section = section })
     end
 end
 
-loadModule("Character", CharacterTab)
-loadModule("Movement", MovementTab)
+loadModule("Character", CharSection)
+loadModule("Movement", MoveSection)
 
 WindUI:Notify({ Title = "Blame", Content = "Loaded successfully!", Duration = 5 })
